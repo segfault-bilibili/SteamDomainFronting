@@ -48,18 +48,34 @@ httpServer.on('connect', function(req, socket, head) {
       return true;
     }
   });
-  if (!found) console.log("Forwarded as-is: \"" + req.url + "\"");
-
-  var upstream = net.connect(upsteamPort, upstreamAddr, function () {
-    upstream.write('CONNECT ' + frontDomain + ' ' +req.httpVersion + '\r\nHost: ' + frontDomain + '\r\n\r\n', function () {
-      upstream.pipe(socket);
-      socket.pipe(upstream);
+  if (found) {
+    var upstream = net.connect(upsteamPort, upstreamAddr, function () {
+      upstream.write('CONNECT ' + frontDomain + ' ' +req.httpVersion + '\r\nHost: ' + frontDomain + '\r\n\r\n', function () {
+        upstream.pipe(socket);
+        socket.pipe(upstream);
+      });
     });
-  });
-  upstream.on('error', function(e) {
-    console.log("Upstream proxy connection error: " + e);
-    socket.end();
-  });
+    upstream.on('error', function(e) {
+      console.log("Upstream proxy connection error: " + e);
+      socket.end();
+    });
+  } else {
+    console.log("Forwarded as-is: \"" + req.url + "\"");
+    let urlsplit = req.url.split(':');
+    let connaddr = urlsplit[0];
+    let connport = urlsplit[1];
+    if (connport == null) connport = '443';
+    var conn = net.connect(connport, connaddr, function () {
+      socket.write("200 Connection Established\r\n\r\n", function () {
+        conn.pipe(socket);
+        socket.pipe(conn);
+      });
+    });
+    conn.on('error', function(e) {
+      socket.end();
+    });
+  }
+
 });
 
 httpServer.listen(18080, '127.0.0.1');
