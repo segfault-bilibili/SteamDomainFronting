@@ -66,7 +66,7 @@ httpServer.on('connect', function(req, socket, head) {
     let connport = urlsplit[1];
     if (connport == null) connport = '443';
     var conn = net.connect(connport, connaddr, function () {
-      socket.write("200 Connection Established\r\n\r\n", function () {
+      socket.write("HTTP/1.1 200 Connection Established\r\n\r\n", function () {
         conn.pipe(socket);
         socket.pipe(conn);
       });
