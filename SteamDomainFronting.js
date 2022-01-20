@@ -11,12 +11,12 @@ const steamDomains = [
 //使用Burp Suite作为上游代理，通过修改HTTP CONNECT中的域名（而不修改被HTTPS加密的HTTP Host头）实现域前置裸连
 //当然，需要系统信任Burp Suite的中间人CA证书
 const upstreamAddr = '127.0.0.1';
-const defaultUpsteamPort = '8080';
+const defaultUpstreamPort = '8080';
 //在Burp Suite里按上述"要进行域前置的域名列表"顺序在Proxy Listeners里添加对应端口号，然后对应修改每个端口要生成证书的域名
 //（主要是因为Burp Suite生成证书时，没有选项能直接生成包含多个域名的证书。理论上也可以自己手动生成这种证书，然后就不用折腾多个端口号了）
-var upsteamPorts = {};
+var upstreamPorts = {};
 for (let i=0; i<steamDomains.length; i++) {
-  upsteamPorts[steamDomains[i]] = (8081 + i) + "";
+  upstreamPorts[steamDomains[i]] = (8081 + i) + "";
 }
 
 //把系统代理设置为本程序，Steam客户端就会遵守系统代理设置，从而通过域前置来达成裸连
@@ -37,19 +37,19 @@ httpServer.on('connect', function(req, socket, head) {
   });
 
   var frontDomain = req.url;
-  var upsteamPort = defaultUpsteamPort;
+  var upstreamPort = defaultUpstreamPort;
   var found = steamDomains.find((domain) => {
     if (domain === req.url.split(":")[0]) {
       var portPart = req.url.match(/:\d+$/);
       portPart = portPart != null ? portPart[0] : "";
       frontDomain = "www.valvesoftware.com" + portPart;
-      upsteamPort = upsteamPorts[domain];
+      upstreamPort = upstreamPorts[domain];
       console.log("Applied domain fronting: \"" + req.url + "\" disguised as \"" + frontDomain + "\"");
       return true;
     }
   });
   if (found) {
-    var upstream = net.connect(upsteamPort, upstreamAddr, function () {
+    var upstream = net.connect(upstreamPort, upstreamAddr, function () {
       upstream.write('CONNECT ' + frontDomain + ' ' +req.httpVersion + '\r\nHost: ' + frontDomain + '\r\n\r\n', function () {
         upstream.pipe(socket);
         socket.pipe(upstream);
