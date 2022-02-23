@@ -6,7 +6,7 @@
 
 出于好奇，就进行了这个蹩脚的域前置实验。
 
-简单说，虽然上述商店页面和社区页面被检测干扰了，但是[V社公司主页](https://www.valvesoftware.com/) 域名`www.valvesoftware.com`貌似还没被检测干扰。于是，只要在TLS握手时使用V社公司主页的域名，就可以作为伪装骗过GFW的检测干扰。握手完成后，因为V社公司主页背后的服务器看上去也可以反代上述商店页面和社区页面（甚至连HTTPS证书里都包含商店和社区的域名，所以还有一个好处就是不需要让Burp Suite忽略上游证书错误），所以就可以借此正常访问商店和社区了。
+简单说，虽然上述商店页面和社区页面被检测干扰了，但是[V社公司主页](https://www.valvesoftware.com/) 域名`www.valvesoftware.com`貌似还没被检测干扰。于是，只要在TLS握手时使用V社公司主页的域名，就可以作为伪装骗过GFW的检测干扰。握手完成后，因为V社公司主页背后的服务器看上去也可以反代上述商店页面和社区页面（HTTPS证书里都包含商店和社区的域名，这就是可以反代的迹象，实际测试也发现确实可以反代。另外还有一个好处就是虽然伪装成其他域名了，但还是正常进行了TLS握手，按照`www.valvesoftware.com`这个域名照常校验服务器证书也不会有问题，所以不需要让Burp Suite忽略上游证书错误），所以就可以借此正常访问商店和社区了。
 
 `SteamDomainFronting.js`使用NodeJS搭建了一个HTTP代理服务器，接受`HTTP CONNECT`请求，然后转发给Burp Suite，但如果发现域名是已经被SNI检测的上述两个（商店和社区），就先修改`HTTP CONNECT`请求头，把域名替换成`www.valvesoftware.com`，再转发给上游的Burp Suite。
 
